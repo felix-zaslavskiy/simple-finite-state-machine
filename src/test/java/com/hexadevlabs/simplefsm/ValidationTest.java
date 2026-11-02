@@ -1,6 +1,5 @@
 package com.hexadevlabs.simplefsm;
 
-import com.hexadevlabs.simplefsm.supporting.HandleSplitPlaceholder;
 import com.hexadevlabs.simplefsm.testSteps.Step1;
 import com.hexadevlabs.simplefsm.testSteps.Step2;
 import com.hexadevlabs.simplefsm.testSteps.Step3;
@@ -57,36 +56,6 @@ public class ValidationTest {
                     .build();
         });
 
-    }
-
-    @Test
-    public void splitHandlerMustHaveDefinedSplitTransitions() {
-        SimpleFSM simpleFSM = new SimpleFSM.Builder()
-                .state("START", new Step1())
-                    .split().goTo("MIDDLE")
-                .state("MIDDLE", new Step2(), true)
-                    .on("continue").goTo("END")
-                .state("END", new Step3())
-                    .auto().goTo("START")
-                .splitHandler(new HandleSplitPlaceholder()) // Define a split handler
-                .build();
-
-        // Missing split transitions, though split handler is defined
-        simpleFSM.getState("START").getSplitTransitions().clear();
-
-        assertThrows(SimpleFSMValidationException.class, () -> simpleFSM.start("START", null));
-    }
-
-     @Test
-    public void statesReachedBySplitMustHaveAdditionalTransitions() {
-         assertThrows(SimpleFSMValidationException.class, () -> {
-                     new SimpleFSM.Builder()
-                             .state("START", new Step1())
-                                .split().goTo("SPLIT_STATE")
-                             .state("SPLIT_STATE", new Step2(), true)
-                                // No additional transitions defined for SPLIT_STATE
-                             .build();
-                 });
     }
 
 }

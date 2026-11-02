@@ -1,14 +1,10 @@
 package com.hexadevlabs.simplefsm;
 
-import java.util.List;
-
 public class FSMState {
     private String currentState;
     private boolean traceMode;
     private Trace trace;
     private boolean started;
-
-    private List<String> completedSplitStates = null;
 
     private String name;
 
@@ -50,12 +46,5 @@ public class FSMState {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public List<String> getCompletedSplitStates(){
-        return this.completedSplitStates;
-    }
-    public void completedSplitStates(List<String> completedSplitStates) {
-        this.completedSplitStates = completedSplitStates;
     }
 }

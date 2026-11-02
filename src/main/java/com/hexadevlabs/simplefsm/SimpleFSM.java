@@ -18,10 +18,6 @@ public class SimpleFSM {
     private boolean onExecutionHookExceptionTerminate;
     private boolean started;
 
-    // Tracking the split states that have been completed so far.
-    private List<String> completedSplitStates;
-
-    private SplitHandler splitHandler;
     String name;
 
 
@@ -30,7 +26,6 @@ public class SimpleFSM {
         trace = new Trace();
         started = false;
         finalStates = new HashSet<>();
-        completedSplitStates = new ArrayList<>();
     }
 
     public void setTraceMode(boolean traceMode) {
@@ -87,80 +82,6 @@ public class SimpleFSM {
     }
 
     /**
-     * Should be called by SplitHandler to initiate work on multiple states
-     * of the State machine in parallel.
-     *
-     * @param splitStateTransition Name of transition for split state
-     * @param data The data as it comes from step just before the split state needs to execute. Data is not merged with anything other parallel processing states may have done.
-     */
-    public void continueOnSplitState(String splitStateTransition, ProcessingData data) {
-
-        if (!started) {
-            throw new IllegalStateException("State machine not started.");
-        }
-
-        // Start work on Split state...
-        State state = states.get(currentState);
-
-        if(!state.getSplitTransitions().contains(splitStateTransition)){
-            throw new IllegalStateException("Not a valid splitState transition for this state machine: " + splitStateTransition);
-        }
-
-        // Process work on the state...
-        String nextStateName = state.getNextState(splitStateTransition);
-        State nextState = states.get(nextStateName);
-
-        ExceptionInfo exceptionInfo = nextState.execute(data, trace , executionHooks);
-
-        // Add exception to list of exceptions if an exception happened.
-        if(exceptionInfo.hadException()) {
-            data.addException(exceptionInfo);
-        } else if(nextState.shouldWaitForEventBeforeTransition()){
-            throw new IllegalStateException("A split state is not allowed to wait for an event");
-        }
-
-        // At the end of the work we need to check for state machine status and update it about the work done.
-        boolean completedOtherWork = splitHandler.getAndUpdateStateAndData(this, data, currentState, nextStateName);
-
-        // If all the work is done continue with normal processing.
-        if(completedOtherWork){
-
-            // If there is an exception somewhere in one of the split states.
-            if(data.hasExceptions()) {
-                if (this.onExceptionState != null) {
-
-                    if (trace.isTraceMode()) {
-                        trace.add("Due to exception after split transitioning to state " + this.onExceptionState);
-                    }
-
-                    currentState = this.onExceptionState;
-                    process(data);
-
-                } else {
-                    // Don't have a transition for Exception event.
-                    if (trace.isTraceMode()) {
-                        trace.add("Stopping because of exception and no onExceptionState transition defined, after split");
-                        trace.add("Had " + data.getExceptions().size() + " exceptions after split");
-                    }
-                    currentState = null;
-                }
-            } else {
-                String nextStateTransition;
-                Collection<String> transitions = nextState.getTransitions();
-                if (transitions.size() == 1) {
-                    nextStateTransition = transitions.iterator().next();
-                } else {
-                    throw new IllegalStateException("Expected on transition to joined state");
-                }
-                currentState = nextStateTransition;
-
-                process(data);
-            }
-        }
-
-    }
-
-    /**
      * Paused means FSM is waiting on an event
      */
     public boolean isPaused() {
@@ -210,18 +131,6 @@ public class SimpleFSM {
 
     public void addFinalState(String finalState) {
         this.finalStates.add(finalState);
-    }
-
-    public void addSplitHandler(SplitHandler handleSplit) {
-        this.splitHandler = handleSplit;
-    }
-
-    public void recordCompletionSplitState(String completedSplitState) {
-        this.completedSplitStates.add(completedSplitState);
-    }
-
-    public Collection<String> getCompletionSplitStates(){
-        return this.completedSplitStates;
     }
 
     /**
@@ -307,16 +216,6 @@ public class SimpleFSM {
             // From here we figure out what the next State to transition to needs to be.
             // It can be directed by the Processor via data, be an auto transition,
             // or there is only one possibly transition available.
-
-            // If there is a split transition from this state we can handle them.
-            // For now if Split is happened we have to save state and pause State machine.
-            Collection<String> splitTransitions = state.getSplitTransitions();
-            if(!splitTransitions.isEmpty()){
-                // Pause state machine loop.
-                // currentState will remain what it was.
-                splitHandler.handleSplit(this, data, splitTransitions);
-                break;
-            }
 
             String nextState = data.getNextState();
             if (nextState == null) {
@@ -412,7 +311,6 @@ public class SimpleFSM {
         result.finalStates.addAll(finalStates);
         result.executionHooks = executionHooks;
         result.onExecutionHookExceptionTerminate = onExecutionHookExceptionTerminate;
-        result.splitHandler = splitHandler;
         return result;
     }
 
@@ -427,7 +325,6 @@ public class SimpleFSM {
                 .build();
         FSMState fsmState = new FSMState();
         fsmState.setCurrentState(currentState);
-        fsmState.completedSplitStates(completedSplitStates);
         fsmState.setTrace(trace);
         fsmState.setStarted(started);
         fsmState.setName(name);
@@ -458,7 +355,6 @@ public class SimpleFSM {
         trace = fsmState.getTrace();
         started = fsmState.isStarted();
         name = fsmState.getName();
-        completedSplitStates = fsmState.getCompletedSplitStates();
     }
 
     /**
@@ -488,13 +384,6 @@ public class SimpleFSM {
             throw new IllegalStateException("State machine in terminated state can not have final state");
 
         return states.get(currentState);
-    }
-
-    /**
-     * Merge trace data from another SimpleFSM
-     */
-    public void mergeTraceFrom(SimpleFSM fromFSM) {
-        trace.merge(fromFSM.trace);
     }
 
     public static class Builder {
@@ -577,12 +466,6 @@ public class SimpleFSM {
 
             return simpleFSM;
         }
-
-
-        public Builder splitHandler(SplitHandler handleSplit) {
-            simpleFSM.addSplitHandler(handleSplit);
-            return this;
-        }
     }
 
     private void validate() {
@@ -601,26 +484,6 @@ public class SimpleFSM {
                 }
             }
         }
-
-        // If there's a split handler, make sure there's at least one split transition defined
-        if (splitHandler != null && states.values().stream().allMatch(state -> state.getSplitTransitions().isEmpty())) {
-            throw new SimpleFSMValidationException("A split handler is set, but no split transitions are defined.");
-        }
-
-        // Ensure that states reached by split transitions have additional transitions
-        Set<String> statesWithSplitTransitions = new HashSet<>();
-        for (State state : states.values()) {
-            for (String splitTransition : state.getSplitTransitions()) {
-                statesWithSplitTransitions.add(state.getNextState(splitTransition));
-            }
-        }
-
-        for (String stateName : statesWithSplitTransitions) {
-            State state = states.get(stateName);
-            if (state.getTransitions().isEmpty()) {  // Check if the state has only the incoming split transition
-                throw new SimpleFSMValidationException("State '" + stateName + "' reached by a split transition must have at least one additional transition.");
-            }
-        }
     }
 
 
@@ -635,25 +498,6 @@ public class SimpleFSM {
 
         public TransitionBuilder on(String eventName) {
             return new TransitionBuilder(eventName, this);
-        }
-
-        public TransitionBuilder split(){
-            return on("SPLIT");
-        }
-
-        /**
-         * For events that are split one needs to tell
-         * how to join to a common state.
-         * @param joinToState The state that this split state joins to.
-         * @return StateBuilder
-         */
-        public StateBuilder join(String joinToState) {
-
-            String eventName = name + "_TO_" + joinToState;
-            // Add a Transition to the joinToState
-            this.parentBuilder.simpleFSM.getState(name).addTransition(eventName, joinToState, false);
-
-            return this;
         }
 
         public TransitionBuilder auto() {
@@ -699,18 +543,12 @@ public class SimpleFSM {
         public Builder withTrace(){
             return parentBuilder.withTrace();
         }
-
-        public Builder splitHandler(SplitHandler handleSplit) {
-            return parentBuilder.splitHandler(handleSplit);
-        }
     }
 
     public static class TransitionBuilder {
         private String eventName;
         private final StateBuilder stateBuilder;
         private final boolean isConditional;
-
-       // private final boolean isJoin
 
         public TransitionBuilder(String eventName, StateBuilder stateBuilder) {
             this(eventName, stateBuilder, false);
@@ -726,12 +564,7 @@ public class SimpleFSM {
             if (isConditional) {
                 eventName += nextState;
             }
-            boolean partOfSplit = false;
-            if(eventName.equals("SPLIT")){
-                eventName += '_' + nextState;
-                partOfSplit = true;
-            }
-            stateBuilder.parentBuilder.simpleFSM.states.get(stateBuilder.name).addTransition(eventName, nextState, partOfSplit);
+            stateBuilder.parentBuilder.simpleFSM.states.get(stateBuilder.name).addTransition(eventName, nextState);
             return stateBuilder;
         }
     }

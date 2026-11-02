@@ -9,7 +9,7 @@ Finite state machines (FSMs) are a powerful technique to manage the flow of cont
 
 ## Features
 - Simple and intuitive API for defining states, transitions, and events.
-- Parallel execution of work is possible by use of split transitions.
+- Single-threaded execution of one state at a time.
 - Support for synchronous and asynchronous transitions.
 - Built-in support for conditional transitions and auto-transitions.
 - Configurable exception handling and error states.
@@ -105,10 +105,9 @@ We welcome contributions to SimpleFSM! If you'd like to contribute, please fork 
 * 1.2.1 Add some error handling for split state processing.
 * 1.2.3 Add Split handler based on Threads
 * 1.2.4 Add validation of the State machine graph during build and on start
+* Unreleased. Remove split and join handling. A run stays on one thread.
 
 ## TODO 
-* More tests for exceptions in Split, Test with persisting split handler.
-* Enforce the structure of the Split processing. Don't allow invalid transitions.
 * Consider adding timeout handling for events.(seems complex)
 * Should the state of FSM be represented as graph structure instead of Hashtable. probably needed for high perforce.
 * For a completed FSM draw a graph that shows the path taken by that execution. Seems like nice idea for debugging.

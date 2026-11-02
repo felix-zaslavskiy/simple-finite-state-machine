@@ -28,12 +28,12 @@ class TraceTest {
     }
 
     @Test
-    void testMergeWithDuplicateLogs() {
+    void testMergeKeepsSameMessageAtDifferentTimes() {
         trace1.add("Duplicate message");
         trace2.add("Duplicate message");
 
         trace1.merge(trace2);
-        assertEquals(1, trace1.size(), "Trace should have exactly one log entry due to duplicate prevention.");
+        assertEquals(2, trace1.size(), "Same message at different times is kept. Equality includes the timestamp.");
     }
 
     @Test

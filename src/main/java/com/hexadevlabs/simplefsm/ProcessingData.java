@@ -77,8 +77,6 @@ public class ProcessingData implements Serializable {
         return dataMap.containsKey(key);
     }
 
-    // These methods assume no Split state are used so
-    // only a single exception is possible.
     public boolean hadException(){
         return !exceptions.isEmpty();
     }
@@ -95,16 +93,6 @@ public class ProcessingData implements Serializable {
     }
 
 
-
-    /**
-     * Simple merge operation. Keys from data will be merged
-     * to this object. If data has same key the values will
-     * override what is in current data object.
-     */
-    public void mergeFrom(ProcessingData data) {
-        this.dataMap.putAll(data.dataMap);
-        this.exceptions.addAll(data.exceptions);
-    }
 
     public String toString(){
         StringBuilder sb = new StringBuilder();

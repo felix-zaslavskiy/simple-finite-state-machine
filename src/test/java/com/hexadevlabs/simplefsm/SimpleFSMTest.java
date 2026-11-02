@@ -18,11 +18,11 @@ public class SimpleFSMTest {
         simpleFSM.addState(new State("END", new Step4(), false));
 
         // Define transitions
-        simpleFSM.getState("START").addTransition("STEP2", "STEP2", false);
-        simpleFSM.getState("START").addTransition("STEP3", "STEP3", false);
+        simpleFSM.getState("START").addTransition("STEP2", "STEP2");
+        simpleFSM.getState("START").addTransition("STEP3", "STEP3");
 
-        simpleFSM.getState("STEP2").addTransition("PROCEED", "END", false);
-        simpleFSM.getState("STEP3").addTransition("AUTO", "END", false);
+        simpleFSM.getState("STEP2").addTransition("PROCEED", "END");
+        simpleFSM.getState("STEP3").addTransition("AUTO", "END");
 
         ProcessingData data = new ProcessingData();
         data.set("value", 5);
@@ -43,11 +43,11 @@ public class SimpleFSMTest {
         simpleFSM.addFinalState("END");
 
         // Define transitions
-        simpleFSM.getState("START").addTransition("STEP2", "STEP2", false);
-        simpleFSM.getState("START").addTransition("STEP3", "STEP3", false);
+        simpleFSM.getState("START").addTransition("STEP2", "STEP2");
+        simpleFSM.getState("START").addTransition("STEP3", "STEP3");
 
-        simpleFSM.getState("STEP2").addTransition("PROCEED", "END", false);
-        simpleFSM.getState("STEP3").addTransition("AUTO", "END", false);
+        simpleFSM.getState("STEP2").addTransition("PROCEED", "END");
+        simpleFSM.getState("STEP3").addTransition("AUTO", "END");
 
         ProcessingData data = new ProcessingData();
         data.set("value", 4);
@@ -71,11 +71,11 @@ public class SimpleFSMTest {
         simpleFSM.addState(new State("END", new Step4(), false));
 
         // Define transitions
-        simpleFSM.getState("START").addTransition("STEP2", "STEP2", false);
-        simpleFSM.getState("START").addTransition("STEP3", "STEP3", false);
+        simpleFSM.getState("START").addTransition("STEP2", "STEP2");
+        simpleFSM.getState("START").addTransition("STEP3", "STEP3");
 
-        simpleFSM.getState("STEP2").addTransition("PROCEED", "END", false);
-        simpleFSM.getState("STEP3").addTransition("AUTO", "END", false);
+        simpleFSM.getState("STEP2").addTransition("PROCEED", "END");
+        simpleFSM.getState("STEP3").addTransition("AUTO", "END");
         simpleFSM.addFinalState("END");
 
         simpleFSM.setTraceMode(true);

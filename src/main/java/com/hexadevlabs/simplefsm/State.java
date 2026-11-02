@@ -16,9 +16,6 @@ public class State {
     // transitioned from this State
     private final Map<String, String> transitions;
 
-    // List of Transition that are part of a split.
-    private final ArrayList<String> splitTransitions;
-
     private ProcessingStep processingStep;
     private final boolean waitForEventBeforeTransition;
 
@@ -35,7 +32,6 @@ public class State {
         this.name = name;
         this.processingStep = processingStep;
         this.transitions = new HashMap<>();
-        this.splitTransitions = new ArrayList<>();
         this.waitForEventBeforeTransition = waitForEventBeforeTransition;
     }
 
@@ -44,17 +40,13 @@ public class State {
      *
      * @param eventName   The name of the event that triggers the transition.
      * @param nextState   The name of the next state to transition to.
-     * @param partOfSplit If true this transition is part of split with other transitions.
      * @throws IllegalArgumentException If a transition with the same event name already exists.
      */
-    public void addTransition(String eventName, String nextState, boolean partOfSplit) {
+    public void addTransition(String eventName, String nextState) {
         if (transitions.containsKey(eventName)) {
             throw new IllegalArgumentException("A transition with the event name '" + eventName + "' already exists in the state '" + name + "'.");
         }
         transitions.put(eventName, nextState);
-
-        if(partOfSplit)
-            splitTransitions.add(eventName);
     }
 
     /**
@@ -70,8 +62,6 @@ public class State {
     Set<Map.Entry<String, String>> getTransitionEntries() {
         return transitions.entrySet();
     }
-
-    public Collection<String> getSplitTransitions() { return splitTransitions; }
 
     /**
      * Get the Next state by following Transition name to name of next State.
